@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: dnd-world
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: backend}
+  template:
+    metadata:
+      labels: {app: backend}
+    spec:
+      containers:
+        - name: backend
+          image: dnd-world/backend:latest
+          env:
+            - name: DATABASE_URL
+              value: postgresql+psycopg://dnd:change-me@postgres:5432/dnd_world
+            - name: CORS_ORIGINS
+              value: '["http://frontend"]'
+          ports: [{containerPort: 8000}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: dnd-world
+spec:
+  selector: {app: backend}
+  ports:
+    - {port: 8000, targetPort: 8000}

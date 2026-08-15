@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:17
+    container_name: dnd-world-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dnd_world
+      POSTGRES_USER: dnd
+      POSTGRES_PASSWORD: dnd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dnd -d dnd_world"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
