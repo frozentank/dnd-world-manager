@@ -10,12 +10,21 @@ export interface NPC {
   active: boolean;
 }
 
+export interface Region {
+  id: number;
+  name: string;
+  description?: string;
+}
+
 export interface Location {
   id: number;
   name: string;
   description?: string;
   location_type: string;
   is_major: boolean;
+  region_id?: number | null;
+  grid_location?: string;
+  map_name?: string;
 }
 
 export interface ScheduleRule {

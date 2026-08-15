@@ -3,20 +3,23 @@ import { api } from "./api";
 import { Dashboard } from "./components/Dashboard";
 import { LocationList } from "./components/LocationList";
 import { NpcList } from "./components/NpcList";
-import type { Location, NPC } from "./types";
+import { RegionList } from "./components/RegionList";
+import type { Location, NPC, Region } from "./types";
 
-type View = "dashboard" | "npcs" | "locations";
+type View = "dashboard" | "npcs" | "locations" | "regions";
 
 export default function App() {
   const [view, setView] = useState<View>("dashboard");
   const [npcs, setNpcs] = useState<NPC[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const refreshData = useCallback(() => {
-    Promise.all([api.npcs(), api.locations()])
-      .then(([n, l]) => {
+    Promise.all([api.npcs(), api.regions(), api.locations()])
+      .then(([n, r, l]) => {
         setNpcs(n);
+        setRegions(r);
         setLocations(l);
       })
       .catch((e) => setError(e.message));
@@ -39,6 +42,22 @@ export default function App() {
   const handleUpdateNpc = async (id: number, payload: Omit<NPC, "id">) => {
     const updated = await api.updateNpc(id, payload);
     setNpcs((current) => current.map((npc) => (npc.id === id ? updated : npc)).sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleCreateRegion = async (payload: Omit<Region, "id">) => {
+    const created = await api.createRegion(payload);
+    setRegions((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleUpdateRegion = async (id: number, payload: Omit<Region, "id">) => {
+    const updated = await api.updateRegion(id, payload);
+    setRegions((current) => current.map((region) => (region.id === id ? updated : region)).sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleDeleteRegion = async (id: number) => {
+    await api.deleteRegion(id);
+    setRegions((current) => current.filter((region) => region.id !== id));
+    setLocations((current) => current.map((location) => location.region_id === id ? { ...location, region_id: null } : location));
   };
 
   const handleCreateLocation = async (payload: Omit<Location, "id">) => {
@@ -67,7 +86,7 @@ export default function App() {
 
       <div className="mx-auto flex max-w-7xl">
         <aside className="w-56 shrink-0 border-r border-slate-800 p-4">
-          {(["dashboard", "npcs", "locations"] as View[]).map((item) => (
+          {(["dashboard", "npcs", "locations", "regions"] as View[]).map((item) => (
             <button
               key={item}
               onClick={() => setView(item)}
@@ -86,7 +105,23 @@ export default function App() {
           )}
           {view === "dashboard" && <Dashboard npcs={npcs} locations={locations} />}
           {view === "npcs" && <NpcList npcs={npcs} onCreate={handleCreateNpc} onUpdate={handleUpdateNpc} onDelete={handleDeleteNpc} />}
-          {view === "locations" && <LocationList locations={locations} onCreate={handleCreateLocation} onUpdate={handleUpdateLocation} onDelete={handleDeleteLocation} />}
+          {view === "locations" && (
+            <LocationList
+              locations={locations}
+              regions={regions}
+              onCreate={handleCreateLocation}
+              onUpdate={handleUpdateLocation}
+              onDelete={handleDeleteLocation}
+            />
+          )}
+          {view === "regions" && (
+            <RegionList
+              regions={regions}
+              onCreate={handleCreateRegion}
+              onUpdate={handleUpdateRegion}
+              onDelete={handleDeleteRegion}
+            />
+          )}
         </main>
       </div>
     </div>

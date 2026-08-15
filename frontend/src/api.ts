@@ -1,4 +1,4 @@
-import type { Location, NPC, ScheduleRule } from "./types";
+import type { Location, NPC, Region, ScheduleRule } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
@@ -53,6 +53,10 @@ export const api = {
   createNpc: (payload: Omit<NPC, "id">) => post<NPC>("/npcs", payload),
   updateNpc: (id: number, payload: Omit<NPC, "id">) => put<NPC>(`/npcs/${id}`, payload),
   deleteNpc: (id: number) => del(`/npcs/${id}`),
+  regions: () => get<Region[]>("/regions"),
+  createRegion: (payload: Omit<Region, "id">) => post<Region>("/regions", payload),
+  updateRegion: (id: number, payload: Omit<Region, "id">) => put<Region>(`/regions/${id}`, payload),
+  deleteRegion: (id: number) => del(`/regions/${id}`),
   locations: () => get<Location[]>("/locations"),
   createLocation: (payload: Omit<Location, "id">) => post<Location>("/locations", payload),
   updateLocation: (id: number, payload: Omit<Location, "id">) => put<Location>(`/locations/${id}`, payload),

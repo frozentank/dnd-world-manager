@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.models import Location, NPC, ScheduleRule
+from app.models import Location, NPC, Region, ScheduleRule
 from app.schemas.location import LocationCreate, LocationRead
 from app.schemas.npc import NPCCreate, NPCRead
+from app.schemas.region import RegionCreate, RegionRead
 from app.schemas.schedule import ScheduleRuleCreate, ScheduleRuleRead
 
 router = APIRouter()
@@ -41,6 +42,41 @@ def delete_npc(npc_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="NPC not found")
 
     db.delete(npc)
+    db.commit()
+    return None
+
+@router.get("/regions", response_model=list[RegionRead])
+def list_regions(db: Session = Depends(get_db)):
+    return db.scalars(select(Region).order_by(Region.name)).all()
+
+@router.post("/regions", response_model=RegionRead, status_code=201)
+def create_region(payload: RegionCreate, db: Session = Depends(get_db)):
+    region = Region(**payload.model_dump())
+    db.add(region)
+    db.commit()
+    db.refresh(region)
+    return region
+
+@router.put("/regions/{region_id}", response_model=RegionRead)
+def update_region(region_id: int, payload: RegionCreate, db: Session = Depends(get_db)):
+    region = db.get(Region, region_id)
+    if region is None:
+        raise HTTPException(status_code=404, detail="Region not found")
+
+    for key, value in payload.model_dump().items():
+        setattr(region, key, value)
+
+    db.commit()
+    db.refresh(region)
+    return region
+
+@router.delete("/regions/{region_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_region(region_id: int, db: Session = Depends(get_db)):
+    region = db.get(Region, region_id)
+    if region is None:
+        raise HTTPException(status_code=404, detail="Region not found")
+
+    db.delete(region)
     db.commit()
     return None
 

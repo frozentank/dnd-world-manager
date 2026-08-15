@@ -1,20 +1,25 @@
 import { useState } from "react";
-import type { Location } from "../types";
+import type { Location, Region } from "../types";
 
 const emptyLocationForm = {
   name: "",
   description: "",
   location_type: "other",
   is_major: true,
+  region_id: "",
+  grid_location: "",
+  map_name: "",
 };
 
 export function LocationList({
   locations,
+  regions,
   onCreate,
   onUpdate,
   onDelete,
 }: {
   locations: Location[];
+  regions: Region[];
   onCreate: (payload: Omit<Location, "id">) => Promise<void> | void;
   onUpdate: (id: number, payload: Omit<Location, "id">) => Promise<void> | void;
   onDelete: (id: number) => Promise<void> | void;
@@ -32,17 +37,22 @@ export function LocationList({
     setEditForm((current) => (current ? { ...current, [field]: value } : current));
   };
 
+  const normalizeLocationPayload = (payload: typeof emptyLocationForm) => ({
+    ...payload,
+    name: payload.name.trim(),
+    description: payload.description.trim() || undefined,
+    location_type: payload.location_type.trim() || "other",
+    region_id: payload.region_id === "" ? null : Number(payload.region_id),
+    grid_location: payload.grid_location.trim() || undefined,
+    map_name: payload.map_name.trim() || undefined,
+  });
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await onCreate({
-        ...form,
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        location_type: form.location_type.trim() || "other",
-      });
+      await onCreate(normalizeLocationPayload(form));
       setForm(emptyLocationForm);
     } finally {
       setIsSubmitting(false);
@@ -53,12 +63,7 @@ export function LocationList({
     event.preventDefault();
     if (!editForm || editingId === null) return;
 
-    await onUpdate(editingId, {
-      ...editForm,
-      name: editForm.name.trim(),
-      description: editForm.description.trim() || undefined,
-      location_type: editForm.location_type.trim() || "other",
-    });
+    await onUpdate(editingId, normalizeLocationPayload(editForm));
     setEditingId(null);
     setEditForm(null);
   };
@@ -84,6 +89,40 @@ export function LocationList({
               value={form.location_type}
               onChange={(event) => handleChange("location_type", event.target.value)}
               className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+            />
+          </label>
+        </div>
+
+        <div className="mb-4 grid gap-4 md:grid-cols-3">
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-300">Region</span>
+            <select
+              value={form.region_id}
+              onChange={(event) => handleChange("region_id", event.target.value)}
+              className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+            >
+              <option value="">No region</option>
+              {regions.map((region) => (
+                <option key={region.id} value={region.id}>{region.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-300">Grid location</span>
+            <input
+              value={form.grid_location}
+              onChange={(event) => handleChange("grid_location", event.target.value)}
+              className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+              placeholder="A1, H-14"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-300">Map</span>
+            <input
+              value={form.map_name}
+              onChange={(event) => handleChange("map_name", event.target.value)}
+              className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+              placeholder="World map"
             />
           </label>
         </div>
@@ -122,7 +161,12 @@ export function LocationList({
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="font-semibold">{location.name}</div>
-                {location.location_type && <div className="text-sm text-slate-400">{location.location_type}</div>}
+                <div className="text-sm text-slate-400">
+                  {location.location_type}
+                  {location.region_id && regions.find((region) => region.id === location.region_id) && (
+                    <span className="ml-2 text-indigo-300">• {regions.find((region) => region.id === location.region_id)?.name}</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`rounded-full px-2 py-1 text-xs ${location.is_major ? "bg-amber-900 text-amber-200" : "bg-slate-700 text-slate-200"}`}>
@@ -137,6 +181,9 @@ export function LocationList({
                       description: location.description ?? "",
                       location_type: location.location_type,
                       is_major: location.is_major,
+                      region_id: location.region_id ? String(location.region_id) : "",
+                      grid_location: location.grid_location ?? "",
+                      map_name: location.map_name ?? "",
                     });
                   }}
                   className="rounded bg-sky-700 px-2 py-1 text-xs font-medium text-sky-100 hover:bg-sky-600"
@@ -170,6 +217,38 @@ export function LocationList({
                     <input
                       value={editForm.location_type}
                       onChange={(event) => handleEditChange("location_type", event.target.value)}
+                      className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    />
+                  </label>
+                </div>
+
+                <div className="mb-4 grid gap-4 md:grid-cols-3">
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-slate-300">Region</span>
+                    <select
+                      value={editForm.region_id}
+                      onChange={(event) => handleEditChange("region_id", event.target.value)}
+                      className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    >
+                      <option value="">No region</option>
+                      {regions.map((region) => (
+                        <option key={region.id} value={region.id}>{region.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-slate-300">Grid location</span>
+                    <input
+                      value={editForm.grid_location}
+                      onChange={(event) => handleEditChange("grid_location", event.target.value)}
+                      className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-slate-300">Map</span>
+                    <input
+                      value={editForm.map_name}
+                      onChange={(event) => handleEditChange("map_name", event.target.value)}
                       className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
                     />
                   </label>
@@ -212,6 +291,11 @@ export function LocationList({
               </form>
             )}
 
+            {location.grid_location && location.map_name && (
+              <p className="mt-3 text-sm text-slate-300">
+                Map: {location.map_name} • Grid: {location.grid_location}
+              </p>
+            )}
             {location.description && <p className="mt-3 text-sm text-slate-300">{location.description}</p>}
           </div>
         ))}
