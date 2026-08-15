@@ -1,0 +1,4 @@
+{
+    "makefile.configureOnOpen": false,
+    "js/ts.tsdk.path": "./frontend/node_modules/typescript/lib"
+}

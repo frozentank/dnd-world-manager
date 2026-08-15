@@ -1,10 +1,39 @@
-FROM node:22-alpine AS build
-WORKDIR /app
-COPY package.json .
-RUN npm install
-COPY . .
-RUN npm run build
+# use the official Bun image
+# see all versions at https://hub.docker.com/r/oven/bun/tags
+FROM docker.io/oven/bun:1 AS base
+WORKDIR /usr/src/app
 
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
+# install dependencies into temp directory
+# this will cache them and speed up future builds
+FROM base AS install
+RUN mkdir -p /temp/dev
+COPY package.json bun.lock /temp/dev/
+RUN cd /temp/dev && bun install --frozen-lockfile
+
+# install with --production (exclude devDependencies)
+RUN mkdir -p /temp/prod
+COPY package.json bun.lock /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
+
+# copy node_modules from temp directory
+# then copy all (non-ignored) project files into the image
+FROM base AS prerelease
+COPY --from=install /temp/dev/node_modules node_modules
+COPY . .
+
+# [optional] tests & build
+ENV NODE_ENV=production
+#RUN bun test
+RUN bun run build
+
+# copy production dependencies and source code into final image
+FROM base AS release
+COPY --from=install /temp/prod/node_modules node_modules
+COPY --from=prerelease /usr/src/app/package.json .
+
+# run the app
+# USER bun # Need to fix this so we don't run as root
+EXPOSE 3000/tcp
+
+# Probably need to fix this
+ENTRYPOINT [ "bun", "run", "dev"]

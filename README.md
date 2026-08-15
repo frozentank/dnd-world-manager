@@ -16,28 +16,61 @@ The intended deployment is behind your Tailscale network, so this skeleton does 
 
 ## Local startup
 
-```bash
-docker compose up -d db
+Requirements:
+* make
+* [Bun](https://bun.sh/docs/installation)
+* [uv](https://docs.astral.sh/uv/getting-started/installation/)
+* [docker-ce](https://docs.docker.com/engine/install/) or [podman](https://podman.io/docs/installation) (Preferred)
 
+### Installing 
+
+Technically, `make setup` will execute all of this but `sudo` can cause problems)
+
+```bash
+## Prepare the DB
+
+# Optional: Docker perform this pull this when run but this will prepare the environment
+# Also, I'm not using user space docker, sudo would be unnecessary if you non-root docker access
+sudo docker compose pull db
+
+
+## Prepare the backend
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload --port 8000
+# Optional: uv will actually create the venv and sync dependencies at runtime
+uv sync --locked
+
+# Configure the DB tables
+uv run alembic upgrade head
+
+## Prepare the frontend
+cd ../frontend
+bun install
 ```
 
-In another terminal:
+### Running
 
+Simpliest: `make run_dev`
+
+Running each component separately:
 ```bash
+# In the first terminal 
+# Database (not much is logged here you could add -d)
+sudo docker compose up
+
+# In the second terminal
+# Backend
+cd backend
+uv run uvicorn app.main:app --reload --port 8000
+
+# In the third terminal
+# Frontend
 cd frontend
-npm install
-npm run dev
+bun dev
 ```
 
-Open http://localhost:5173.
+Bun should spit out the URL the app is running at.
 
-Importing NPC spreadsheet data
+## Importing NPC spreadsheet data
 
 1. Make sure your region and location records already exist in the app.
 2. Use the CSV header names from the example file in `examples/npc_imports.csv`:
