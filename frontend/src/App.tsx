@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
+import { Dashboard } from "./components/Dashboard";
+import { LocationList } from "./components/LocationList";
+import { NpcList } from "./components/NpcList";
 import type { Location, NPC } from "./types";
 
 type View = "dashboard" | "npcs" | "locations";
@@ -10,11 +13,48 @@ export default function App() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const refreshData = useCallback(() => {
     Promise.all([api.npcs(), api.locations()])
-      .then(([n, l]) => { setNpcs(n); setLocations(l); })
+      .then(([n, l]) => {
+        setNpcs(n);
+        setLocations(l);
+      })
       .catch((e) => setError(e.message));
   }, []);
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  const handleCreateNpc = async (payload: Omit<NPC, "id">) => {
+    const created = await api.createNpc(payload);
+    setNpcs((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleDeleteNpc = async (id: number) => {
+    await api.deleteNpc(id);
+    setNpcs((current) => current.filter((npc) => npc.id !== id));
+  };
+
+  const handleUpdateNpc = async (id: number, payload: Omit<NPC, "id">) => {
+    const updated = await api.updateNpc(id, payload);
+    setNpcs((current) => current.map((npc) => (npc.id === id ? updated : npc)).sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleCreateLocation = async (payload: Omit<Location, "id">) => {
+    const created = await api.createLocation(payload);
+    setLocations((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleUpdateLocation = async (id: number, payload: Omit<Location, "id">) => {
+    const updated = await api.updateLocation(id, payload);
+    setLocations((current) => current.map((location) => (location.id === id ? updated : location)).sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleDeleteLocation = async (id: number) => {
+    await api.deleteLocation(id);
+    setLocations((current) => current.filter((location) => location.id !== id));
+  };
 
   return (
     <div className="min-h-screen">
@@ -41,59 +81,14 @@ export default function App() {
         </aside>
 
         <main className="flex-1 p-6">
-          {error && <div className="mb-6 rounded bg-red-950 p-4 text-red-200">API error: {error}</div>}
+          {error && (
+            <div className="mb-6 rounded bg-red-950 p-4 text-red-200">API error: {error}</div>
+          )}
           {view === "dashboard" && <Dashboard npcs={npcs} locations={locations} />}
-          {view === "npcs" && <List title="NPCs" items={npcs.map(n => ({title: n.name, subtitle: n.title, body: n.description}))} />}
-          {view === "locations" && <List title="Locations" items={locations.map(l => ({title: l.name, subtitle: l.location_type, body: l.description}))} />}
+          {view === "npcs" && <NpcList npcs={npcs} onCreate={handleCreateNpc} onUpdate={handleUpdateNpc} onDelete={handleDeleteNpc} />}
+          {view === "locations" && <LocationList locations={locations} onCreate={handleCreateLocation} onUpdate={handleUpdateLocation} onDelete={handleDeleteLocation} />}
         </main>
       </div>
     </div>
-  );
-}
-
-function Dashboard({ npcs, locations }: { npcs: NPC[]; locations: Location[] }) {
-  return (
-    <>
-      <h2 className="mb-6 text-2xl font-semibold">Campaign Overview</h2>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Stat title="NPCs" value={npcs.length} />
-        <Stat title="Major Locations" value={locations.length} />
-        <Stat title="World Time" value="08:00" />
-      </div>
-      <section className="mt-8 rounded-lg border border-slate-800 bg-slate-900 p-6">
-        <h3 className="mb-2 text-lg font-semibold">Current Location Snapshot</h3>
-        <p className="text-slate-400">
-          This will eventually show exactly which NPCs are present at a selected
-          location for the current campaign date/time.
-        </p>
-      </section>
-    </>
-  );
-}
-
-function Stat({ title, value }: { title: string; value: number | string }) {
-  return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
-      <div className="text-sm text-slate-400">{title}</div>
-      <div className="mt-2 text-3xl font-bold">{value}</div>
-    </div>
-  );
-}
-
-function List({ title, items }: { title: string; items: {title: string; subtitle?: string; body?: string}[] }) {
-  return (
-    <>
-      <h2 className="mb-6 text-2xl font-semibold">{title}</h2>
-      <div className="space-y-3">
-        {items.map((item, i) => (
-          <div key={i} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-            <div className="font-semibold">{item.title}</div>
-            {item.subtitle && <div className="text-sm text-slate-400">{item.subtitle}</div>}
-            {item.body && <p className="mt-2 text-sm text-slate-300">{item.body}</p>}
-          </div>
-        ))}
-        {items.length === 0 && <div className="rounded-lg border border-slate-800 bg-slate-900 p-6 text-slate-400">Nothing here yet.</div>}
-      </div>
-    </>
   );
 }
