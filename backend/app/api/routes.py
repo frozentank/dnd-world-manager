@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -7,12 +7,26 @@ from app.schemas.location import LocationCreate, LocationRead
 from app.schemas.npc import NPCCreate, NPCRead
 from app.schemas.region import RegionCreate, RegionRead
 from app.schemas.schedule import ScheduleRuleCreate, ScheduleRuleRead
+from app.services.npc_import import import_npcs_from_csv
 
 router = APIRouter()
 
 @router.get("/npcs", response_model=list[NPCRead])
 def list_npcs(db: Session = Depends(get_db)):
     return db.scalars(select(NPC).order_by(NPC.name)).all()
+
+@router.post("/npcs/import", response_model=dict[str, int], status_code=201)
+def import_npcs(file: UploadFile, db: Session = Depends(get_db)):
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="A CSV file is required")
+
+    uploaded = file.file.read()
+    temp_path = f"/tmp/{file.filename}"
+    with open(temp_path, "wb") as csv_file:
+        csv_file.write(uploaded)
+
+    created = import_npcs_from_csv(db, temp_path)
+    return {"created": len(created)}
 
 @router.post("/npcs", response_model=NPCRead, status_code=201)
 def create_npc(payload: NPCCreate, db: Session = Depends(get_db)):

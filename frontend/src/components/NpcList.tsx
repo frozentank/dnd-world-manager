@@ -1,24 +1,34 @@
 import { useState } from "react";
-import type { NPC } from "../types";
+import type { Location, NPC, Region } from "../types";
 
 const emptyNpcForm = {
   name: "",
   title: "",
   description: "",
+  profession: "",
+  race: "",
+  gender: "",
+  quirk: "",
   personality: "",
   appearance: "",
   secrets: "",
   notes: "",
+  location_id: "",
+  region_id: "",
   active: true,
 };
 
 export function NpcList({
   npcs,
+  regions,
+  locations,
   onCreate,
   onUpdate,
   onDelete,
 }: {
   npcs: NPC[];
+  regions: Region[];
+  locations: Location[];
   onCreate: (payload: Omit<NPC, "id">) => Promise<void> | void;
   onUpdate: (id: number, payload: Omit<NPC, "id">) => Promise<void> | void;
   onDelete: (id: number) => Promise<void> | void;
@@ -36,21 +46,29 @@ export function NpcList({
     setEditForm((current) => (current ? { ...current, [field]: value } : current));
   };
 
+  const normalizeNpcPayload = (payload: typeof emptyNpcForm) => ({
+    ...payload,
+    name: payload.name.trim(),
+    title: payload.title.trim() || undefined,
+    description: payload.description.trim() || undefined,
+    profession: payload.profession.trim() || undefined,
+    race: payload.race.trim() || undefined,
+    gender: payload.gender.trim() || undefined,
+    quirk: payload.quirk.trim() || undefined,
+    personality: payload.personality.trim() || undefined,
+    appearance: payload.appearance.trim() || undefined,
+    secrets: payload.secrets.trim() || undefined,
+    notes: payload.notes.trim() || undefined,
+    location_id: payload.location_id === "" ? null : Number(payload.location_id),
+    region_id: payload.region_id === "" ? null : Number(payload.region_id),
+  });
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await onCreate({
-        ...form,
-        name: form.name.trim(),
-        title: form.title.trim() || undefined,
-        description: form.description.trim() || undefined,
-        personality: form.personality.trim() || undefined,
-        appearance: form.appearance.trim() || undefined,
-        secrets: form.secrets.trim() || undefined,
-        notes: form.notes.trim() || undefined,
-      });
+      await onCreate(normalizeNpcPayload(form));
       setForm(emptyNpcForm);
     } finally {
       setIsSubmitting(false);
@@ -61,16 +79,7 @@ export function NpcList({
     event.preventDefault();
     if (!editForm || editingId === null) return;
 
-    await onUpdate(editingId, {
-      ...editForm,
-      name: editForm.name.trim(),
-      title: editForm.title.trim() || undefined,
-      description: editForm.description.trim() || undefined,
-      personality: editForm.personality.trim() || undefined,
-      appearance: editForm.appearance.trim() || undefined,
-      secrets: editForm.secrets.trim() || undefined,
-      notes: editForm.notes.trim() || undefined,
-    });
+    await onUpdate(editingId, normalizeNpcPayload(editForm));
     setEditingId(null);
     setEditForm(null);
   };
@@ -98,6 +107,56 @@ export function NpcList({
               className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
             />
           </label>
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-300">Profession</span>
+            <input
+              value={form.profession}
+              onChange={(event) => handleChange("profession", event.target.value)}
+              className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-300">Race</span>
+            <input
+              value={form.race}
+              onChange={(event) => handleChange("race", event.target.value)}
+              className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-300">Gender</span>
+            <input
+              value={form.gender}
+              onChange={(event) => handleChange("gender", event.target.value)}
+              className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm text-slate-300">Region</span>
+            <select
+              value={form.region_id}
+              onChange={(event) => handleChange("region_id", event.target.value)}
+              className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+            >
+              <option value="">No region</option>
+              {regions.map((region) => (
+                <option key={region.id} value={region.id}>{region.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block md:col-span-2">
+            <span className="mb-1 block text-sm text-slate-300">Location</span>
+            <select
+              value={form.location_id}
+              onChange={(event) => handleChange("location_id", event.target.value)}
+              className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+            >
+              <option value="">No location</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>{location.name}</option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div className="mb-4 grid gap-4 md:grid-cols-2">
@@ -107,6 +166,14 @@ export function NpcList({
               value={form.description}
               onChange={(event) => handleChange("description", event.target.value)}
               className="min-h-24 w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+            />
+          </label>
+          <label className="block md:col-span-2">
+            <span className="mb-1 block text-sm text-slate-300">Quirk</span>
+            <textarea
+              value={form.quirk}
+              onChange={(event) => handleChange("quirk", event.target.value)}
+              className="min-h-20 w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
             />
           </label>
           <label className="block md:col-span-2">
@@ -182,10 +249,16 @@ export function NpcList({
                       name: npc.name,
                       title: npc.title ?? "",
                       description: npc.description ?? "",
+                      profession: npc.profession ?? "",
+                      race: npc.race ?? "",
+                      gender: npc.gender ?? "",
+                      quirk: npc.quirk ?? "",
                       personality: npc.personality ?? "",
                       appearance: npc.appearance ?? "",
                       secrets: npc.secrets ?? "",
                       notes: npc.notes ?? "",
+                      location_id: npc.location_id ? String(npc.location_id) : "",
+                      region_id: npc.region_id ? String(npc.region_id) : "",
                       active: npc.active,
                     });
                   }}
@@ -223,6 +296,56 @@ export function NpcList({
                       className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
                     />
                   </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-slate-300">Profession</span>
+                    <input
+                      value={editForm.profession}
+                      onChange={(event) => handleEditChange("profession", event.target.value)}
+                      className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-slate-300">Race</span>
+                    <input
+                      value={editForm.race}
+                      onChange={(event) => handleEditChange("race", event.target.value)}
+                      className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-slate-300">Gender</span>
+                    <input
+                      value={editForm.gender}
+                      onChange={(event) => handleEditChange("gender", event.target.value)}
+                      className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-slate-300">Region</span>
+                    <select
+                      value={editForm.region_id}
+                      onChange={(event) => handleEditChange("region_id", event.target.value)}
+                      className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    >
+                      <option value="">No region</option>
+                      {regions.map((region) => (
+                        <option key={region.id} value={region.id}>{region.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="mb-1 block text-sm text-slate-300">Location</span>
+                    <select
+                      value={editForm.location_id}
+                      onChange={(event) => handleEditChange("location_id", event.target.value)}
+                      className="w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    >
+                      <option value="">No location</option>
+                      {locations.map((location) => (
+                        <option key={location.id} value={location.id}>{location.name}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
 
                 <div className="mb-4 grid gap-4 md:grid-cols-2">
@@ -232,6 +355,14 @@ export function NpcList({
                       value={editForm.description}
                       onChange={(event) => handleEditChange("description", event.target.value)}
                       className="min-h-24 w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
+                    />
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="mb-1 block text-sm text-slate-300">Quirk</span>
+                    <textarea
+                      value={editForm.quirk}
+                      onChange={(event) => handleEditChange("quirk", event.target.value)}
+                      className="min-h-20 w-full rounded border border-slate-700 bg-slate-950 p-2 text-white"
                     />
                   </label>
                   <label className="block md:col-span-2">
@@ -297,6 +428,7 @@ export function NpcList({
             )}
 
             {npc.description && <p className="mt-3 text-sm text-slate-300">{npc.description}</p>}
+            {npc.quirk && <p className="mt-2 text-sm"><span className="font-medium text-slate-200">Quirk:</span> {npc.quirk}</p>}
             {npc.personality && <p className="mt-2 text-sm"><span className="font-medium text-slate-200">Personality:</span> {npc.personality}</p>}
             {npc.appearance && <p className="mt-2 text-sm"><span className="font-medium text-slate-200">Appearance:</span> {npc.appearance}</p>}
             {npc.secrets && <p className="mt-2 text-sm"><span className="font-medium text-slate-200">Secrets:</span> {npc.secrets}</p>}

@@ -3,10 +3,16 @@ export interface NPC {
   name: string;
   title?: string;
   description?: string;
+  profession?: string;
+  race?: string;
+  gender?: string;
+  quirk?: string;
   personality?: string;
   appearance?: string;
   secrets?: string;
   notes?: string;
+  location_id?: number | null;
+  region_id?: number | null;
   active: boolean;
 }
 

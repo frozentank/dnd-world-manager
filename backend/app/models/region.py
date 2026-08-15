@@ -11,3 +11,4 @@ class Region(Base):
     description: Mapped[str | None] = mapped_column(Text)
 
     locations: Mapped[list["Location"]] = relationship(back_populates="region")
+    npcs: Mapped[list["NPC"]] = relationship(back_populates="region")

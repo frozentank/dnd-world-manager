@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
 import { Dashboard } from "./components/Dashboard";
+import { ImportNpcCsv } from "./components/ImportNpcCsv";
 import { LocationList } from "./components/LocationList";
 import { NpcList } from "./components/NpcList";
 import { RegionList } from "./components/RegionList";
@@ -104,7 +105,19 @@ export default function App() {
             <div className="mb-6 rounded bg-red-950 p-4 text-red-200">API error: {error}</div>
           )}
           {view === "dashboard" && <Dashboard npcs={npcs} locations={locations} />}
-          {view === "npcs" && <NpcList npcs={npcs} onCreate={handleCreateNpc} onUpdate={handleUpdateNpc} onDelete={handleDeleteNpc} />}
+          {view === "npcs" && (
+            <>
+              <ImportNpcCsv onImported={refreshData} />
+              <NpcList
+                npcs={npcs}
+                regions={regions}
+                locations={locations}
+                onCreate={handleCreateNpc}
+                onUpdate={handleUpdateNpc}
+                onDelete={handleDeleteNpc}
+              />
+            </>
+          )}
           {view === "locations" && (
             <LocationList
               locations={locations}

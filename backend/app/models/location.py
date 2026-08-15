@@ -15,6 +15,7 @@ class Location(Base):
     map_name: Mapped[str | None] = mapped_column(String(200))
 
     region: Mapped["Region | None"] = relationship(back_populates="locations")
+    npcs: Mapped[list["NPC"]] = relationship(back_populates="location")
     schedule_rules: Mapped[list["ScheduleRule"]] = relationship(
         back_populates="location", cascade="all, delete-orphan"
     )

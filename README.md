@@ -37,6 +37,31 @@ npm run dev
 
 Open http://localhost:5173.
 
+Importing NPC spreadsheet data
+
+1. Make sure your region and location records already exist in the app.
+2. Use the CSV header names from the example file in `examples/npc_imports.csv`:
+   - ID
+   - Name
+   - Profession
+   - Race
+   - Gender
+   - Appearance
+   - Quirk
+   - Secrets
+   - Notes
+   - Location
+   - Region
+3. The app matches the `Location` and `Region` values against existing database entries by name.
+4. Upload the CSV via the API endpoint `POST /api/npcs/import` with a multipart form field named `file`.
+
+Example:
+
+```bash
+curl -X POST http://localhost:8000/api/npcs/import \
+  -F "file=@examples/npc_imports.csv"
+```
+
 API docs: http://localhost:8000/docs
 
 ## Scheduling concept
